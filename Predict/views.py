@@ -13,13 +13,14 @@ precaution_dict = dict(zip(
     precaution_df['Disease'], 
     precaution_df[['Precaution_1', 'Precaution_2', 'Precaution_3', 'Precaution_4']].values.tolist()
 ))
+
 def remove_trailing_spaces(word):
     return word.rstrip()
 
 @api_view(['POST'])
 def predict_disease(request):
     data = request.data.get('symptoms')
-
+    print("data = ",data)
     if not isinstance(data, list):
         return Response({"error": "Symptoms must be a list of 17 numbers."}, status=status.HTTP_400_BAD_REQUEST)
     if len(data) != 17:
@@ -27,10 +28,11 @@ def predict_disease(request):
     
     try:
         features = np.array(data).reshape(1, -1)
+        print("features = ",features)
+        print("teest: ",model.predict(features))
         prediction = model.predict(features)[0]
-        print("prediction = ",prediction)
         prediction = remove_trailing_spaces(prediction)
-        print("description_dict = ",description_dict[prediction])
+        # print("description_dict = ",description_dict[prediction])
         response_data = {
             "predicted_disease": prediction,
             "description": description_dict.get(prediction, "No description available."),

@@ -6,11 +6,10 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 @api_view(['POST'])
 def signup_view(request):
-    username = request.data.get('username')
     password = request.data.get('password')
     email = request.data.get('email')
 
-    if not username or not password:
+    if not email or not password:
         return Response({'detail': 'Username and password are required'}, status=status.HTTP_400_BAD_REQUEST)
 
     if User.objects.filter(username=email).exists():
@@ -27,3 +26,4 @@ def signup_view(request):
         'user_id': user.id,
         'username': user.username
     }, status=status.HTTP_201_CREATED)
+
