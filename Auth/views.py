@@ -13,7 +13,7 @@ def signup_view(request):
         return Response({'detail': 'Username and password are required'}, status=status.HTTP_400_BAD_REQUEST)
 
     if User.objects.filter(username=email).exists():
-        return Response({'detail': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'detail': 'Email already exists'}, status=status.HTTP_400_BAD_REQUEST)
 
     user = User.objects.create_user(username=email, password=password, email=email)
     user.save()
