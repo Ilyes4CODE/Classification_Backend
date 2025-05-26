@@ -14,7 +14,6 @@ import tensorflow as tf
 
 logger = logging.getLogger(__name__)
 
-# Load the Neural Network model and preprocessors
 try:
     model = tf.keras.models.load_model('disease_prediction_neural_network.h5')
     scaler = joblib.load('scaler.pkl')
@@ -26,7 +25,6 @@ except Exception as e:
     scaler = None
     label_encoder = None
 
-# Load description and precaution data
 description_df = pd.read_csv('symptom_Description.csv')
 precaution_df = pd.read_csv('symptom_precaution.csv')
 description_dict = dict(zip(description_df['Disease'], description_df['Description']))
@@ -40,7 +38,6 @@ def remove_trailing_spaces(word):
 
 @api_view(['POST'])
 def predict_disease(request):
-    # Check if model is loaded
     if model is None or scaler is None or label_encoder is None:
         return Response(
             {"error": "Model not loaded properly. Please check server logs."}, 
