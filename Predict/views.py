@@ -10,20 +10,15 @@ from django.core.mail import EmailMessage
 from django.conf import settings
 import os
 import logging
-import tensorflow as tf
 
 logger = logging.getLogger(__name__)
 
 try:
-    model = tf.keras.models.load_model('disease_prediction_neural_network.h5')
-    scaler = joblib.load('scaler.pkl')
-    label_encoder = joblib.load('label_encoder.pkl')
-    logger.info("Neural Network model and preprocessors loaded successfully")
+    model = joblib.load('disease_prediction_model.pkl')
+    logger.info("Model loaded successfully")
 except Exception as e:
     logger.error(f"Error loading model: {str(e)}")
     model = None
-    scaler = None
-    label_encoder = None
 
 description_df = pd.read_csv('symptom_Description.csv')
 precaution_df = pd.read_csv('symptom_precaution.csv')
@@ -38,7 +33,7 @@ def remove_trailing_spaces(word):
 
 @api_view(['POST'])
 def predict_disease(request):
-    if model is None or scaler is None or label_encoder is None:
+    if model is None:
         return Response(
             {"error": "Model not loaded properly. Please check server logs."}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -60,41 +55,21 @@ def predict_disease(request):
         )
     
     try:
-        # Convert to numpy array and reshape
         features = np.array(data, dtype=np.float32).reshape(1, -1)
-        print("features = ", features)
-        
-        # Scale the features using the same scaler used during training
-        features_scaled = scaler.transform(features)
-        print("features_scaled = ", features_scaled)
-        
-        # Make prediction using the neural network
-        prediction_probabilities = model.predict(features_scaled, verbose=0)
-        print("prediction_probabilities = ", prediction_probabilities)
-        
-        # Get the predicted class index
-        predicted_class_index = np.argmax(prediction_probabilities, axis=1)[0]
-        
-        # Convert back to disease name using label encoder
-        prediction = label_encoder.inverse_transform([predicted_class_index])[0]
-        prediction = remove_trailing_spaces(prediction)
-        
-        # Get confidence score
-        confidence = float(np.max(prediction_probabilities) * 100)
-        
-        print("Predicted disease:", prediction)
-        print("Confidence:", f"{confidence:.2f}%")
-        
-        # Prepare response data
+
+        # Make prediction
+        prediction = model.predict(features)[0]
+        prediction = remove_trailing_spaces(str(prediction))
+
         response_data = {
             "predicted_disease": prediction,
-            "confidence": round(confidence, 2),
+            "confidence": 100.0,  # Hardcoded confidence, since we removed probability and TF
             "description": description_dict.get(prediction, "No description available."),
             "precautions": [p for p in precaution_dict.get(prediction, []) if p]
         }
-        
+
         return Response(response_data, status=status.HTTP_200_OK)
-        
+
     except ValueError as ve:
         logger.error(f"ValueError in prediction: {str(ve)}")
         return Response(
@@ -107,7 +82,6 @@ def predict_disease(request):
             {"error": f"Prediction failed: {str(e)}"}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-
 
 
 class SendDiagnosisEmailView(APIView):
